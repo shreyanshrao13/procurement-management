@@ -1,0 +1,98 @@
+# ProcureMind – Quick Start Guide (Non-Technical Users)
+
+### Step 1: Open the Application
+
+Locate the file named **ProcureMind.html** and double-click it.
+
+It will automatically open in your web browser (Chrome, Edge, Firefox, or Safari).
+
+No installation, coding, or setup is required.
+
+---
+
+### Step 2: Choose How You Want to Use It
+
+You have two options:
+
+**Option A – Try the Demo**
+
+* Click **"Load Demo Data"**
+* The application will load sample products and cost information automatically.
+* This is the fastest way to see how ProcureMind works.
+
+**Option B – Use Your Own Data**
+
+* Open the **"00 – My Data"** section.
+* Upload your CSV files containing:
+
+  * Product/BOM data
+  * Material prices
+  * Labor costs
+  * Supplier quotes
+  * Historical purchase orders
+
+The system will calculate should-costs using your data.
+
+---
+
+### Step 3: Review the Should-Cost Analysis
+
+After loading data, ProcureMind will automatically show:
+
+* Estimated should-cost
+* Material cost breakdown
+* Labor cost breakdown
+* Overhead costs
+* Supplier margin estimate
+* Key cost drivers
+
+This helps you understand what the product should realistically cost.
+
+---
+
+### Step 4: Compare Supplier Quotes
+
+Upload or enter supplier quotes.
+
+ProcureMind will compare:
+
+* Supplier quoted price
+* Estimated should-cost
+* Historical purchase prices
+* Market benchmarks
+
+It will highlight:
+
+* Overpriced suppliers
+* Fair pricing range
+* Potential savings opportunities
+
+---
+
+### Step 5: Generate a Negotiation Brief
+
+Click **"Negotiation Brief"**.
+
+The system will generate a one-page summary containing:
+
+* Recommended target price
+* Walk-away price
+* Negotiation points
+* Cost breakdown
+* Savings opportunities
+
+You can print or share this report before supplier meetings.
+
+---
+
+### Important Notes
+
+✅ No software installation required
+
+✅ Works completely offline
+
+✅ Your data stays on your computer
+
+✅ No internet required for CSV uploads
+
+✅ Simply open **ProcureMind.html** and start using it

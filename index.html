@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcureMind — Dynamic Should-Cost Intelligence</title>
+<script src="market-data.js"></script>
+<script src="app.js" defer></script>
+<style>
+  :root{
+    --bg0:#080b22; --bg1:#160a2e; --bg2:#0a1130;
+    --surface:rgba(28,33,71,.72); --surface2:rgba(36,42,86,.78); --surface3:#222a55;
+    --glass:rgba(22,27,60,.55);
+    --line:rgba(140,150,220,.20); --line2:rgba(140,150,220,.11);
+    --ink:#eaf0ff; --txt:#b6bdea; --mute:#7e88bd;
+    --primary:#7c5cff; --primary2:#a855f7;
+    --cyan:#22d3ee; --teal:#2dd4bf; --violet:#a855f7; --pink:#ec4899;
+    --amber:#fbbf24; --green:#34d399; --rose:#fb7185; --lime:#a3e635; --blue:#3b82f6;
+    --mat:#22d3ee; --lab:#8b5cf6; --ovh:#ec4899; --mgn:#fbbf24; --excess:#fb7185;
+    --r:16px; --rs:11px;
+    --grad:linear-gradient(135deg,#7c3aed,#4f46e5 45%,#0891b2);
+    --grad2:linear-gradient(135deg,#ec4899,#8b5cf6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--txt);line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;
+    background:
+      radial-gradient(1100px 700px at 12% -8%, rgba(124,92,255,.28), transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, rgba(34,211,238,.18), transparent 55%),
+      radial-gradient(800px 800px at 70% 110%, rgba(236,72,153,.16), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1) 55%,var(--bg2));
+    background-attachment:fixed;}
+  h1,h2,h3,h4{line-height:1.22;color:var(--ink);font-weight:800;letter-spacing:-.2px}
+  .wrap{max-width:1260px;margin:0 auto;padding:0 22px}
+  ::selection{background:rgba(124,92,255,.4)}
+  input,select,button{font-family:inherit}
+
+  /* glow scrollbar */
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:linear-gradient(var(--primary),var(--cyan));border-radius:9px}
+  ::-webkit-scrollbar-track{background:rgba(255,255,255,.04)}
+
+  /* Header */
+  header{position:relative;padding:18px 0;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(124,92,255,.16),rgba(8,11,34,0));backdrop-filter:blur(8px)}
+  .hd{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:13px}
+  .logo{width:46px;height:46px;border-radius:13px;background:var(--grad);display:grid;place-items:center;
+    box-shadow:0 0 0 1px rgba(168,85,247,.5),0 8px 26px rgba(124,92,255,.55)}
+  .logo svg{width:26px;height:26px}
+  .brand h1{font-size:21px;background:linear-gradient(90deg,#fff,#c4b5fd 60%,#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .brand p{color:var(--mute);font-size:12px;margin-top:2px}
+  .hd-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .chip{background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:12px;
+    color:var(--txt);display:flex;align-items:center;gap:9px;backdrop-filter:blur(6px)}
+  .chip b{color:var(--ink)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(52,211,153,.6);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  .reload{cursor:pointer;background:var(--grad2);color:#fff;border:none;border-radius:999px;padding:9px 15px;font-size:12px;font-weight:700;
+    box-shadow:0 6px 18px rgba(236,72,153,.4);transition:transform .12s,box-shadow .2s}
+  .reload:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(236,72,153,.55)}
+  .reload:active{transform:translateY(0)}
+
+  /* Control bar */
+  .control{position:sticky;top:0;z-index:40;margin-top:0;background:rgba(10,13,38,.78);backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  .control .wrap{display:flex;gap:15px;align-items:flex-end;flex-wrap:wrap;padding:15px 22px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:11px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.7px}
+  .field .hint{font-size:11px;color:var(--primary);font-weight:600;text-transform:none;letter-spacing:0}
+  select,input{font-size:14px;border:1.5px solid var(--line);border-radius:var(--rs);padding:10px 12px;color:var(--ink);
+    background:rgba(12,16,42,.9);transition:border-color .15s,box-shadow .15s}
+  select option,optgroup{background:#10142f;color:var(--ink)}
+  select:focus,input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(124,92,255,.28),0 0 18px rgba(124,92,255,.2)}
+  #catSelect{min-width:320px;font-weight:700}
+  .inp-money{position:relative}.inp-money input{padding-left:26px;width:170px}
+  .inp-money::before{content:"$";position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--cyan);font-weight:700}
+  .field-grow{flex:1;min-width:200px}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:22px 0}
+  .kpi{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;
+    backdrop-filter:blur(10px);overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+  .kpi::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 60px at 100% 0,var(--gl,rgba(124,92,255,.18)),transparent 70%);pointer-events:none}
+  .kpi .k-lab{font-size:11px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.6px}
+  .kpi .k-val{font-size:26px;font-weight:800;color:var(--ink);margin-top:7px;letter-spacing:-.6px}
+  .kpi .k-sub{font-size:11.5px;color:var(--mute);margin-top:4px}
+  .kpi .accent{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+  .kpi.good .k-val{color:var(--green)} .kpi.warn .k-val{color:var(--amber)} .kpi.bad .k-val{color:var(--rose)}
+
+  /* Tabs */
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:24px;overflow-x:auto;padding-bottom:1px}
+  .tab{padding:12px 16px;font-size:13.5px;font-weight:700;color:var(--mute);cursor:pointer;border:none;background:none;
+    border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:color .15s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--ink);border-image:var(--grad) 1;border-bottom:2.5px solid;}
+  .tab .num{font-size:10px;font-weight:800;background:rgba(124,92,255,.18);color:#c4b5fd;border-radius:6px;padding:2px 6px}
+  .tab.active .num{background:var(--grad);color:#fff}
+
+  /* Cards */
+  .panel{display:none;animation:fade .3s ease}.panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .grid{display:grid;gap:18px}
+  .g-2{grid-template-columns:1fr 1fr}.g-3{grid-template-columns:1fr 1fr 1fr}.g-12{grid-template-columns:1.15fr .85fr}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;backdrop-filter:blur(10px);
+    box-shadow:0 12px 34px rgba(0,0,0,.26)}
+  .card.soft{background:var(--glass)}
+  .card h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .card .desc{font-size:12.5px;color:var(--mute);margin-bottom:16px}
+  .card-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .pill{font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+  .pill.low{background:rgba(52,211,153,.16);color:#6ee7b7;border-color:rgba(52,211,153,.35)}
+  .pill.med{background:rgba(251,191,36,.16);color:#fcd34d;border-color:rgba(251,191,36,.35)}
+  .pill.high{background:rgba(251,113,133,.16);color:#fda4af;border-color:rgba(251,113,133,.4)}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:rgba(140,150,220,.14);color:var(--txt)}
+  .badge.lever{background:rgba(45,212,191,.16);color:#5eead4;border:1px solid rgba(45,212,191,.3)}
+  .badge.fixed{background:rgba(140,150,220,.12);color:var(--mute)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line2)}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mute);font-weight:800}
+  td{color:var(--txt)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.total td{border-top:2px solid var(--line);border-bottom:none;font-weight:800;color:var(--ink);font-size:14px;padding-top:12px}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:4px;margin-right:8px;vertical-align:middle;box-shadow:0 0 8px var(--sg,transparent)}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:12px}
+  .legend span{display:flex;align-items:center;color:var(--txt)}
+
+  .driver{padding:13px 0;border-bottom:1px solid var(--line2)}.driver:last-child{border-bottom:none}
+  .driver-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+  .driver-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:8px;color:var(--ink)}
+  .bar{height:10px;border-radius:6px;background:rgba(140,150,220,.13);overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:6px}
+  .driver-note{font-size:12px;color:var(--mute);margin-top:7px}
+
+  .brief{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.35)}
+  .brief-hd{background:var(--grad);padding:24px 26px}
+  .brief-hd h2{color:#fff;font-size:21px}.brief-hd p{color:rgba(255,255,255,.85);font-size:13px;margin-top:4px}
+  .brief-body{padding:24px 26px;background:var(--surface);backdrop-filter:blur(10px)}
+  .brief-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+  .price-box{border:1px solid var(--line);border-radius:13px;padding:16px;text-align:center;background:var(--glass)}
+  .price-box .pl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--mute)}
+  .price-box .pv{font-size:25px;font-weight:800;margin-top:6px;letter-spacing:-.6px}
+  .price-box.target{border-color:rgba(52,211,153,.5);box-shadow:0 0 24px rgba(52,211,153,.18) inset}.price-box.target .pv{color:var(--green)}
+  .price-box.stretch{border-color:rgba(124,92,255,.5);box-shadow:0 0 24px rgba(124,92,255,.18) inset}.price-box.stretch .pv{color:#a78bfa}
+  .price-box.walk{border-color:rgba(251,191,36,.5);box-shadow:0 0 24px rgba(251,191,36,.16) inset}.price-box.walk .pv{color:var(--amber)}
+  .brief h4{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--primary);margin:20px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line2)}
+  .brief ol,.brief ul{margin:0 0 4px 2px;padding-left:18px}
+  .brief li{margin-bottom:9px;font-size:13.5px;color:var(--txt)}
+  .brief li b{color:var(--ink)}
+  .data-tag{display:inline-block;font-size:10.5px;color:#67e8f9;background:rgba(34,211,238,.13);border:1px solid rgba(34,211,238,.3);border-radius:6px;padding:1px 7px;margin-left:4px;font-weight:700}
+
+  .btn{font-weight:800;font-size:13px;border:none;border-radius:var(--rs);padding:11px 17px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:transform .1s,box-shadow .2s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 22px rgba(124,92,255,.42)}.btn-primary:hover{box-shadow:0 12px 28px rgba(124,92,255,.6)}
+  .btn-ghost{background:var(--glass);color:var(--ink);border:1.5px solid var(--line)}.btn-ghost:hover{border-color:var(--primary)}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+
+  .mkt-table td{padding:12px 9px}
+  .trend{font-weight:800;font-size:12.5px;font-variant-numeric:tabular-nums}
+  .trend.up{color:var(--rose)}.trend.dn{color:var(--green)}.trend.flat{color:var(--mute)}
+  .simrow{display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+  .simrow:last-child{border-bottom:none}
+  .simrow .nm{min-width:180px;font-weight:700;font-size:13px;color:var(--ink)}
+  input[type=range]{flex:1;min-width:150px;accent-color:var(--primary);height:5px}
+  .simrow .vv{min-width:150px;text-align:right;font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums}
+
+  .note{background:rgba(124,92,255,.10);border-left:3px solid var(--primary);border-radius:0 10px 10px 0;padding:13px 15px;font-size:12.5px;color:var(--txt);margin-top:15px}
+  .note.amber{border-left-color:var(--amber);background:rgba(251,191,36,.10)}
+  .note b{color:var(--ink)}
+  .alert{display:flex;gap:10px;align-items:flex-start;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.32);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#fcd34d;margin-bottom:10px}
+  .alert.ok{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.32);color:#6ee7b7}
+  .alert.bad{background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.36);color:#fda4af}
+
+  .scale{position:relative;height:50px;margin:28px 0 12px}
+  .scale .track{position:absolute;left:0;right:0;top:22px;height:9px;border-radius:6px;
+    background:linear-gradient(90deg,var(--green),var(--lime) 38%,var(--amber) 72%,var(--rose));box-shadow:0 0 18px rgba(251,113,133,.25)}
+  .scale .mk{position:absolute;top:6px;transform:translateX(-50%);text-align:center}
+  .scale .mk .pin{width:3px;height:34px;margin:0 auto;border-radius:3px}
+  .scale .mk .lb{font-size:10px;font-weight:800;white-space:nowrap;padding:0 4px}
+  .scale .mk.sc .pin{background:var(--green);box-shadow:0 0 12px var(--green)}.scale .mk.sc .lb{color:var(--green)}
+  .scale .mk.q .pin{background:var(--rose);height:42px;box-shadow:0 0 12px var(--rose)}.scale .mk.q .lb{color:var(--rose)}
+
+  footer{color:var(--mute);font-size:11.5px;text-align:center;padding:30px 0 28px;line-height:1.8;border-top:1px solid var(--line2);margin-top:34px}
+  footer b{color:var(--txt)}
+  svg text{fill:var(--ink)}
+  @media(max-width:880px){.kpis{grid-template-columns:repeat(2,1fr)}.g-2,.g-3,.g-12{grid-template-columns:1fr}.brief-grid{grid-template-columns:1fr}#catSelect{min-width:220px}}
+  @media print{header,.control,.tabs,.btn-row,.hd-right,footer{display:none!important}.panel{display:none!important}#panel-brief{display:block!important}body{background:#0a0d26}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap hd">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17l5-5 4 4 8-9" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="7" r="2" fill="#fff"/></svg></div>
+      <div><h1>ProcureMind</h1><p>Dynamic Should-Cost Intelligence &amp; Negotiation Copilot</p></div>
+    </div>
+    <div class="hd-right">
+      <div class="chip" id="backendChip" style="display:none"><span class="dot"></span><b>Backend connected</b> &middot; <span id="apiCount">0</span>&nbsp;your categories</div>
+      <div class="chip"><span class="dot"></span>Live data &middot; <b id="updatedChip">—</b></div>
+      <div class="chip" style="cursor:default"><b id="catCount">50</b>&nbsp;categories &middot; <b id="idxCount">24</b>&nbsp;indices</div>
+      <button class="reload" onclick="location.reload()">↻ Reload latest</button>
+    </div>
+  </div>
+</header>
+
+<div class="control">
+  <div class="wrap">
+    <div class="field field-grow">
+      <label>Procurement Category <span class="hint">— search 50 categories</span></label>
+      <select id="catSelect"></select>
+    </div>
+    <div class="field">
+      <label>Annual Volume <span class="hint" id="unitHint">units</span></label>
+      <input id="qtyInput" type="number" min="0" step="1" value="1000">
+    </div>
+    <div class="field">
+      <label>Supplier's Quote <span class="hint" id="quoteHint">per unit</span></label>
+      <div class="inp-money"><input id="quoteInput" type="number" min="0" step="0.01" value="0"></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <div class="tabs" id="tabs">
+    <button class="tab" data-p="data" id="tab-data" style="display:none"><span class="num">00</span>My Data</button>
+    <button class="tab active" data-p="calc"><span class="num">01</span>Should-Cost</button>
+    <button class="tab" data-p="market"><span class="num">02</span>Live Market</button>
+    <button class="tab" data-p="drivers"><span class="num">03</span>Cost Drivers</button>
+    <button class="tab" data-p="supplier"><span class="num">04</span>Supplier Structure</button>
+    <button class="tab" data-p="bench"><span class="num">05</span>Benchmark</button>
+    <button class="tab" data-p="brief"><span class="num">06</span>Negotiation Brief</button>
+    <button class="tab" data-p="refresh"><span class="num">07</span>Refresh &amp; Risk</button>
+  </div>
+  <div id="panel-data" class="panel"></div>
+  <div id="panel-calc" class="panel active"></div>
+  <div id="panel-market" class="panel"></div>
+  <div id="panel-drivers" class="panel"></div>
+  <div id="panel-supplier" class="panel"></div>
+  <div id="panel-bench" class="panel"></div>
+  <div id="panel-brief" class="panel"></div>
+  <div id="panel-refresh" class="panel"></div>
+  <footer>
+    ProcureMind &middot; data-driven should-cost models for 50 procurement categories &middot; prices auto-refreshed daily by an LLM market scan.<br>
+    Estimates are decision-support benchmarks, not quotes &mdash; validate against your own spend data before negotiating.
+  </footer>
+</div>
+
+<script>
+/* ============ MARKET DATA (fallback if market-data.js absent) ============ */
+const MARKET_DEFAULT = {
+  steel_hrc:{label:"Steel (hot-rolled coil)",value:1105,base:1105,unit:"$/short ton",mom:3.5,vol:"high",src:"Nucor / CRU",note:"Tight supply, reduced imports pushing prices up."},
+  aluminum:{label:"Aluminum (LME)",value:3150,base:3150,unit:"$/tonne",mom:1.2,vol:"high",src:"LME",note:"Off January highs but elevated."},
+  copper:{label:"Copper (LME)",value:10900,base:10900,unit:"$/tonne",mom:-1.8,vol:"high",src:"LME",note:"Took a breather after an explosive Q1."},
+  crude_brent:{label:"Crude oil (Brent)",value:88,base:88,unit:"$/barrel",mom:-6.0,vol:"high",src:"EIA STEO",note:"Volatile; eased on US–Iran talks."},
+  diesel:{label:"Diesel (retail)",value:3.40,base:3.40,unit:"$/gallon",mom:-2.0,vol:"med",src:"EIA",note:"2026 average forecast $3.40/gal."},
+  natgas:{label:"Natural gas (Henry Hub)",value:3.80,base:3.80,unit:"$/MMBtu",mom:1.0,vol:"med",src:"EIA",note:"Range-bound heading into summer."},
+  power_comm:{label:"Commercial electricity",value:14.4,base:14.4,unit:"¢/kWh",mom:0.6,vol:"med",src:"EIA / ChooseEnergy",note:"Up ~6–10% year over year."},
+  power_ind:{label:"Industrial electricity",value:8.54,base:8.54,unit:"¢/kWh",mom:0.5,vol:"med",src:"EIA",note:"Lower than commercial tariffs."},
+  pp_resin:{label:"Polypropylene resin",value:0.69,base:0.69,unit:"$/lb",mom:1.0,vol:"med",src:"PlasticsTech / ICIS",note:"N. America; PE up 15¢/lb YTD."},
+  pe_resin:{label:"Polyethylene resin",value:0.72,base:0.72,unit:"$/lb",mom:1.5,vol:"med",src:"PlasticsTech",note:"Resin prices shifted up in Q2."},
+  lumber:{label:"Framing lumber",value:623,base:623,unit:"$/MBF",mom:2.0,vol:"high",src:"CME / Madison's",note:"Tight on tariffs + wildfire disruption."},
+  concrete:{label:"Ready-mix concrete",value:155,base:155,unit:"$/cu yd",mom:0.5,vol:"low",src:"ConcreteNetwork",note:"$125–175/yd³ delivered."},
+  containerbd:{label:"Containerboard",value:920,base:920,unit:"$/ton",mom:1.2,vol:"med",src:"Fastmarkets RISI",note:"Second 2026 increase wave underway."},
+  dryvan:{label:"Truckload (dry van) spot",value:2.75,base:2.75,unit:"$/mile",mom:1.5,vol:"med",src:"DAT / C.H. Robinson",note:"Firming; contract +15–30%."},
+  ocean_feu:{label:"Ocean freight (40ft)",value:3549,base:3549,unit:"$/FEU",mom:3.0,vol:"high",src:"Drewry WCI",note:"Peak season + tariff front-loading."},
+  jetfuel:{label:"Jet fuel",value:2.45,base:2.45,unit:"$/gallon",mom:-3.0,vol:"high",src:"IATA / EIA",note:"Tracks crude; volatile."},
+  swe_rate:{label:"Software contractor",value:90,base:90,unit:"$/hour",mom:0.3,vol:"low",src:"Glassdoor / Arc.dev",note:"$50–110; AI/cloud $100+."},
+  consult_day:{label:"Consulting day rate",value:1800,base:1800,unit:"$/day",mom:0.3,vol:"low",src:"ConsultingSuccess",note:"Big-4 senior ~$258/hr."},
+  janitorial:{label:"Janitorial labour",value:39,base:39,unit:"$/hour",mom:0.3,vol:"low",src:"Angi / HomeGuide",note:"$35–60/hr; labour 50–60% of cost."},
+  bpo_off:{label:"BPO agent (offshore)",value:11,base:11,unit:"$/hour",mom:0.2,vol:"low",src:"Helpware / CloudTalk",note:"PH/IN voice & chat."},
+  bpo_on:{label:"BPO agent (onshore US)",value:35,base:35,unit:"$/hour",mom:0.3,vol:"low",src:"Contact Center USA",note:"40–70% premium vs offshore."},
+  staff_mu:{label:"Staffing markup",value:40,base:40,unit:"% over pay",mom:0.0,vol:"low",src:"Upwork / altLINE",note:"Temp markup 25–50%."},
+  aws_vcpu:{label:"Cloud compute (vCPU)",value:0.040,base:0.040,unit:"$/vCPU-hr",mom:-0.4,vol:"low",src:"AWS EC2",note:"List erosion ~5%/yr; commit −40–72%."},
+  eci_wage:{label:"Wage inflation (ECI)",value:3.4,base:3.4,unit:"% YoY",mom:0.0,vol:"low",src:"US BLS Q1'26",note:"Benefits +3.6% YoY."}
+};
+const PM = (window.PM_DATA && window.PM_DATA.market) ? window.PM_DATA : {market:MARKET_DEFAULT, updated:"built-in seed", nextRefresh:"daily · end of day"};
+const MARKET = PM.market;
+// guarantee base exists
+Object.keys(MARKET).forEach(k=>{if(MARKET[k].base==null)MARKET[k].base=MARKET[k].value;});
+
+const FAM = {it:"IT & Technology",fm:"Facilities Management",con:"Construction & Capital",log:"Logistics & Supply Chain",ps:"Professional Services",mfg:"Materials, MRO & Manufacturing"};
+
+const CATS = [
+  {id:"cloud_iaas",fam:"it",name:"Cloud Infrastructure (IaaS)",unit:"per vCPU-month",sc:28,lo:14,hi:45,vol:"med",mix:{lab:.10,mat:.35,ovh:.25,mgn:.30},links:["aws_vcpu","power_ind"],note:"List prices erode ~5%/yr; committed-spend deals unlock 40–72% off on-demand.",drivers:[{n:"Commitment level (on-demand vs reserved)",share:.34,inf:true,lever:"1–3yr Savings Plans / committed-use → 40–72% off list."},{n:"Vendor margin & discount tier",share:.30,inf:true,lever:"Negotiate enterprise discount (EDP) on committed annual spend."},{n:"Hardware depreciation",share:.20,inf:false,lever:"Provider-side; track instance-generation price cuts."},{n:"Power, cooling & PUE",share:.16,inf:false,lever:"Region choice affects power cost; limited buyer flex."}]},
+  {id:"saas",fam:"it",name:"SaaS / Enterprise Software Licenses",unit:"per user / year",sc:1500,lo:600,hi:3000,vol:"low",mix:{lab:.15,mat:.08,ovh:.22,mgn:.55},links:[],note:"Software gross margins of 70–85% mean large negotiation headroom on list price.",drivers:[{n:"Discount off list price",share:.50,inf:true,lever:"Multi-year + volume tiers commonly yield 20–40% off list."},{n:"Edition / feature bundle",share:.24,inf:true,lever:"Right-size editions; remove shelfware & unused modules."},{n:"Support / success tier",share:.14,inf:true,lever:"Drop premium support if not consumed."},{n:"Hosting & infrastructure",share:.12,inf:false,lever:"Vendor cost base; minimal buyer influence."}]},
+  {id:"laptops",fam:"it",name:"Corporate Laptops / Endpoints",unit:"per laptop",sc:1250,lo:750,hi:2200,vol:"med",mix:{lab:.06,mat:.62,ovh:.12,mgn:.20},links:["copper","power_ind"],note:"Components are ~60% of cost; spec discipline and timing beat hard price-downs.",drivers:[{n:"Configuration / spec level",share:.34,inf:true,lever:"Standardize specs; avoid over-spec'ing CPU/RAM for task profile."},{n:"Components (CPU, display, memory)",share:.30,inf:false,lever:"Silicon-linked; choose value tier & ride generation cycles."},{n:"Channel margin & rebate",share:.20,inf:true,lever:"Volume rebate + quarter/EOL timing for best pricing."},{n:"Memory / SSD market",share:.16,inf:false,lever:"Commodity NAND/DRAM cycle; index-linked."}]},
+  {id:"servers",fam:"it",name:"Servers & Data-Center Equipment",unit:"per server",sc:9000,lo:4500,hi:22000,vol:"high",mix:{lab:.05,mat:.68,ovh:.12,mgn:.15},links:["copper","power_ind"],note:"GPU/accelerator demand is inflating configs; CPU/GPU choice dominates cost.",drivers:[{n:"CPU / GPU selection",share:.40,inf:true,lever:"Match accelerator tier to workload; avoid GPU over-provisioning."},{n:"Configuration (memory, storage)",share:.28,inf:true,lever:"Right-size RAM/NVMe to actual utilization."},{n:"Memory market",share:.17,inf:false,lever:"DRAM cycle; index-linked."},{n:"Reseller margin",share:.15,inf:true,lever:"Competitive bid across OEM channel partners."}]},
+  {id:"networking",fam:"it",name:"Networking Equipment",unit:"per switch / AP",sc:3500,lo:1200,hi:9000,vol:"med",mix:{lab:.05,mat:.60,ovh:.15,mgn:.20},links:["copper"],note:"Support (Smartnet-style) attach is a major margin pool and a negotiation lever.",drivers:[{n:"Silicon & components",share:.42,inf:false,lever:"ASIC-driven; choose right port/throughput class."},{n:"List-price discount",share:.22,inf:true,lever:"Deal-registration + competitive quotes for steep discounts."},{n:"Support / maintenance attach",share:.18,inf:true,lever:"Right-size support years; negotiate multi-year attach."},{n:"Configuration",share:.18,inf:true,lever:"Avoid premium licensing tiers you won't use."}]},
+  {id:"swdev",fam:"it",name:"Custom Software Development",unit:"per developer-hour",sc:90,lo:35,hi:180,vol:"low",mix:{lab:.68,mat:.02,ovh:.15,mgn:.15},links:["swe_rate","bpo_off"],note:"Cost is almost all labour — the blended seniority & location mix is everything.",drivers:[{n:"Blended seniority mix",share:.40,inf:true,lever:"Right-size senior:junior ratio; cap architect hours."},{n:"Delivery location",share:.25,inf:true,lever:"Onshore/nearshore/offshore blend tuned to task criticality."},{n:"Supplier margin",share:.16,inf:true,lever:"Benchmark blended rate vs market; negotiate volume tiers."},{n:"Bench / utilization",share:.11,inf:false,lever:"Supplier-side; ask for utilization-based rate."},{n:"Tooling & licenses",share:.08,inf:true,lever:"Use client-provided tooling where possible."}]},
+  {id:"itms",fam:"it",name:"IT Managed Services / Help Desk",unit:"per seat / month",sc:95,lo:45,hi:180,vol:"low",mix:{lab:.60,mat:.08,ovh:.17,mgn:.15},links:["bpo_off","swe_rate","eci_wage"],note:"Automation and self-service deflect tickets — the biggest structural cost lever.",drivers:[{n:"Labour rate & location",share:.48,inf:true,lever:"Shift L1 offshore; reserve onshore for escalations."},{n:"SLA tier",share:.16,inf:true,lever:"Match response/resolution SLAs to actual business need."},{n:"Margin",share:.15,inf:true,lever:"Benchmark per-seat price; gain-share on ticket reduction."},{n:"Automation & tooling",share:.12,inf:true,lever:"Self-service/automation cuts ticket volume → unit cost."},{n:"Overhead",share:.09,inf:false,lever:"Provider fixed cost."}]},
+  {id:"cyber",fam:"it",name:"Cybersecurity Services",unit:"per endpoint / year",sc:75,lo:30,hi:160,vol:"low",mix:{lab:.45,mat:.20,ovh:.18,mgn:.17},links:[],note:"Tool sprawl drives cost — consolidation of overlapping licenses is the key lever.",drivers:[{n:"SOC / analyst labour",share:.38,inf:true,lever:"Tiered monitoring; co-managed model to share load."},{n:"Tool licensing",share:.22,inf:true,lever:"Consolidate overlapping tools; platform vs point solutions."},{n:"Coverage (24×7 vs business hrs)",share:.22,inf:true,lever:"Match coverage window to real risk profile."},{n:"Margin",share:.18,inf:true,lever:"Benchmark per-endpoint price across MSSPs."}]},
+  {id:"telecom",fam:"it",name:"Telecom & Connectivity",unit:"per site / month",sc:800,lo:300,hi:2000,vol:"low",mix:{lab:.10,mat:.25,ovh:.25,mgn:.40},links:[],note:"Carrier margins are high on legacy circuits; competitive bids cut MRC sharply.",drivers:[{n:"Carrier margin",share:.38,inf:true,lever:"Competitive RFP; carriers discount heavily to win/retain."},{n:"Bandwidth commitment",share:.28,inf:true,lever:"Right-size committed bandwidth; burst vs fixed."},{n:"Contract term",share:.20,inf:true,lever:"Longer term cuts monthly recurring charge."},{n:"Install / NRC",share:.14,inf:true,lever:"Negotiate NRC waiver on renewal/expansion."}]},
+  {id:"data_svc",fam:"it",name:"Data & Analytics Services",unit:"per consultant-day",sc:1500,lo:700,hi:3000,vol:"low",mix:{lab:.62,mat:.05,ovh:.18,mgn:.15},links:["swe_rate"],note:"Labour-led; seniority mix and clear scope drive the bill.",drivers:[{n:"Seniority mix",share:.45,inf:true,lever:"Cap principal/architect days; leverage delivery pods."},{n:"Delivery location",share:.25,inf:true,lever:"Blend offshore data engineering with onshore lead."},{n:"Margin",share:.15,inf:true,lever:"Benchmark day rate; outcome-based pricing."},{n:"Tooling / platform",share:.15,inf:true,lever:"Use client cloud credits / existing platforms."}]},
+  {id:"cleaning",fam:"fm",name:"Commercial Cleaning / Janitorial",unit:"per sq ft / year",sc:1.65,lo:1.00,hi:2.80,vol:"low",mix:{lab:.55,mat:.10,ovh:.20,mgn:.15},links:["janitorial","eci_wage"],note:"Labour is 50–60% of cost and largely market-set — productivity (sq ft/FTE) is the lever.",drivers:[{n:"Cleaning labour wage",share:.50,inf:false,lever:"Wage is market-set; target productivity not wage cuts."},{n:"Cleaning spec & frequency",share:.22,inf:true,lever:"Right-size frequency/scope; day-cleaning to cut shifts."},{n:"Overhead & margin",share:.18,inf:true,lever:"Benchmark management overhead; open-book on margin."},{n:"Supplies & consumables",share:.10,inf:true,lever:"Standardize chemicals; dispenser efficiency."}]},
+  {id:"security",fam:"fm",name:"Manned Security / Guarding",unit:"per guard-hour",sc:28,lo:18,hi:45,vol:"low",mix:{lab:.72,mat:.03,ovh:.12,mgn:.13},links:["eci_wage"],note:"Wage + statutory costs dominate; the margin and overtime model is where flex sits.",drivers:[{n:"Wage + benefits + statutory",share:.62,inf:false,lever:"Statutory floor; reduce hours via tech, not pay."},{n:"Bill-rate markup / margin",share:.20,inf:true,lever:"Open-book pay-to-bill; benchmark markup %."},{n:"Coverage & overtime model",share:.18,inf:true,lever:"Optimize shift patterns; remote monitoring to cut posts."}]},
+  {id:"hvac_maint",fam:"fm",name:"HVAC Maintenance",unit:"per RTU / year",sc:650,lo:350,hi:1200,vol:"low",mix:{lab:.50,mat:.20,ovh:.15,mgn:.15},links:["copper","eci_wage"],note:"Planned-maintenance frequency and reactive call-out mix drive total spend.",drivers:[{n:"Technician labour",share:.45,inf:true,lever:"Route density; remote diagnostics to cut truck rolls."},{n:"Parts & refrigerant",share:.20,inf:false,lever:"Refrigerant-linked; spec standard parts."},{n:"PM frequency",share:.20,inf:true,lever:"Condition-based maintenance vs fixed calendar."},{n:"Margin",share:.15,inf:true,lever:"Benchmark per-unit price across FM providers."}]},
+  {id:"landscaping",fam:"fm",name:"Landscaping & Grounds",unit:"per acre / month",sc:450,lo:200,hi:900,vol:"low",mix:{lab:.55,mat:.12,ovh:.18,mgn:.15},links:["diesel","eci_wage"],note:"Frequency of service is the dominant controllable lever on cost.",drivers:[{n:"Crew labour",share:.50,inf:false,lever:"Market-set; seasonal scheduling to optimize."},{n:"Service frequency / scope",share:.22,inf:true,lever:"Reduce mow frequency; native/low-maintenance planting."},{n:"Equipment & fuel",share:.13,inf:false,lever:"Diesel-linked; provider equipment."},{n:"Margin",share:.15,inf:true,lever:"Multi-site bundling for volume pricing."}]},
+  {id:"waste",fam:"fm",name:"Waste Management",unit:"per ton",sc:95,lo:45,hi:220,vol:"med",mix:{lab:.25,mat:.10,ovh:.45,mgn:.20},links:["diesel"],note:"Disposal/tipping fees and route density dominate; right-sizing service cuts cost.",drivers:[{n:"Disposal / tipping fees",share:.30,inf:false,lever:"Landfill-set; divert recyclables to cut tonnage."},{n:"Route density & frequency",share:.26,inf:true,lever:"Right-size container & pickup frequency; compaction."},{n:"Margin & contract terms",share:.22,inf:true,lever:"Audit auto-escalators & surcharges; cap CPI."},{n:"Fuel",share:.14,inf:false,lever:"Diesel-linked surcharge."},{n:"Collection labour",share:.08,inf:false,lever:"Provider-side."}]},
+  {id:"catering",fam:"fm",name:"Catering & Food Services",unit:"per meal",sc:12,lo:6,hi:25,vol:"med",mix:{lab:.35,mat:.40,ovh:.12,mgn:.13},links:["eci_wage"],note:"Food commodity + labour are ~75% of cost; menu spec and waste are controllable.",drivers:[{n:"Food commodity cost",share:.40,inf:false,lever:"Menu engineering to seasonal/lower-cost items."},{n:"Kitchen & service labour",share:.33,inf:false,lever:"Production planning to cut waste & OT."},{n:"Spec & waste",share:.14,inf:true,lever:"Portion control; demand forecasting cuts waste."},{n:"Margin",share:.13,inf:true,lever:"Open-book / management-fee model."}]},
+  {id:"furniture",fam:"fm",name:"Office Furniture",unit:"per workstation",sc:1400,lo:700,hi:3500,vol:"low",mix:{lab:.15,mat:.50,ovh:.15,mgn:.20},links:["steel_hrc","lumber"],note:"Brand premium and over-specification are the biggest savings opportunities.",drivers:[{n:"Materials (steel, wood, textile)",share:.42,inf:false,lever:"Index-linked; standardize material grades."},{n:"Brand premium & margin",share:.25,inf:true,lever:"Tier-2 brands / contract grade vs designer lines."},{n:"Specification",share:.20,inf:true,lever:"Standardize SKUs across estate; reduce variants."},{n:"Freight & install",share:.13,inf:true,lever:"Consolidate deliveries; self-install simple items."}]},
+  {id:"energy",fam:"fm",name:"Energy / Electricity Supply",unit:"per MWh",sc:95,lo:60,hi:160,vol:"high",mix:{lab:.07,mat:.70,ovh:.15,mgn:.08},links:["natgas","power_comm"],note:"Wholesale commodity is ~65% — hedging and demand management beat supplier shopping alone.",drivers:[{n:"Wholesale power (commodity)",share:.62,inf:false,lever:"Hedge / fixed-price block; gas-linked."},{n:"Capacity & demand charges",share:.16,inf:true,lever:"Peak-shaving & demand response to cut kW charges."},{n:"Retailer margin",share:.12,inf:true,lever:"Competitive procurement in deregulated markets."},{n:"Renewable / green premium",share:.10,inf:true,lever:"PPAs can lock low long-term rates."}]},
+  {id:"pest",fam:"fm",name:"Pest Control",unit:"per site / year",sc:1200,lo:500,hi:2800,vol:"low",mix:{lab:.50,mat:.15,ovh:.18,mgn:.17},links:[],note:"Visit frequency and contract bundling are the main levers.",drivers:[{n:"Labour / visits",share:.46,inf:true,lever:"Condition-based vs fixed visit schedule."},{n:"Margin & overhead",share:.22,inf:true,lever:"Multi-site bundle; benchmark per-site price."},{n:"Overhead",share:.17,inf:false,lever:"Provider routing/admin."},{n:"Chemicals & materials",share:.15,inf:false,lever:"Standard treatments."}]},
+  {id:"bldg_maint",fam:"fm",name:"Building Maintenance & Repairs",unit:"per sq ft / year",sc:2.10,lo:1.10,hi:4.00,vol:"low",mix:{lab:.50,mat:.22,ovh:.13,mgn:.15},links:["eci_wage","steel_hrc"],note:"Shifting reactive to planned maintenance reduces total lifecycle cost.",drivers:[{n:"Trade labour",share:.44,inf:false,lever:"Market wage; productivity via planning."},{n:"Materials & parts",share:.22,inf:false,lever:"Index-linked; standard parts catalog."},{n:"Reactive vs planned mix",share:.19,inf:true,lever:"Preventive maintenance cuts emergency call-out premium."},{n:"Margin",share:.15,inf:true,lever:"Benchmark rate card; open-book labour."}]},
+  {id:"gen_con",fam:"con",name:"Commercial Construction (build)",unit:"per sq ft",sc:425,lo:250,hi:800,vol:"med",mix:{lab:.35,mat:.40,ovh:.12,mgn:.13},links:["steel_hrc","concrete","lumber"],note:"Value-engineering structure/finishes and tightening GC general-conditions are key.",drivers:[{n:"Trade labour",share:.32,inf:false,lever:"Market-set; schedule efficiency reduces hours."},{n:"Structural materials",share:.30,inf:false,lever:"Steel/concrete index-linked; value-engineer design."},{n:"Scope & complexity",share:.15,inf:true,lever:"Design simplification; finish-level decisions."},{n:"GC margin & general conditions",share:.13,inf:true,lever:"Open-book; benchmark GC fee & GCs %."},{n:"Schedule",share:.10,inf:true,lever:"Realistic schedule avoids acceleration premiums."}]},
+  {id:"electrical",fam:"con",name:"Electrical Contracting",unit:"per sq ft",sc:18,lo:9,hi:35,vol:"med",mix:{lab:.45,mat:.35,ovh:.10,mgn:.10},links:["copper","eci_wage"],note:"Copper-heavy: wire/conduit pricing moves directly with copper indices.",drivers:[{n:"Electrician labour",share:.42,inf:false,lever:"Market wage; prefab to cut field hours."},{n:"Copper wiring & conduit",share:.28,inf:false,lever:"Copper-linked; lock pricing / aluminum feeders where code allows."},{n:"Gear & switchgear lead time",share:.18,inf:true,lever:"Early procurement avoids expedite premiums."},{n:"Margin",share:.12,inf:true,lever:"Competitive bid; benchmark unit rates."}]},
+  {id:"plumbing",fam:"con",name:"Plumbing & Mechanical",unit:"per sq ft",sc:22,lo:12,hi:45,vol:"med",mix:{lab:.45,mat:.35,ovh:.10,mgn:.10},links:["copper","pp_resin","steel_hrc"],note:"Pipe material mix (copper/PVC/steel) and labour drive most of the cost.",drivers:[{n:"Trade labour",share:.42,inf:false,lever:"Prefab assemblies cut on-site hours."},{n:"Pipe & materials",share:.30,inf:false,lever:"Copper/PVC-linked; spec PEX/PVC where suitable."},{n:"Fixtures spec",share:.16,inf:true,lever:"Standardize fixtures; value-tier selection."},{n:"Margin",share:.12,inf:true,lever:"Competitive bid."}]},
+  {id:"steel_struct",fam:"con",name:"Structural Steel (fab & erect)",unit:"per ton installed",sc:3200,lo:2200,hi:4800,vol:"high",mix:{lab:.25,mat:.55,ovh:.10,mgn:.10},links:["steel_hrc"],note:"Raw steel is ~50% of cost — index-linking and hedging the steel component is the play.",drivers:[{n:"Steel mill price",share:.50,inf:false,lever:"HRC/plate index-linked; lock or hedge at award."},{n:"Fabrication labour",share:.22,inf:true,lever:"Design for fabrication; standard connections."},{n:"Erection",share:.13,inf:true,lever:"Site sequencing & crane efficiency."},{n:"Margin",share:.15,inf:true,lever:"Separate steel cost from fab margin (open-book)."}]},
+  {id:"concrete_rm",fam:"con",name:"Concrete / Ready-Mix (placed)",unit:"per cubic yard",sc:175,lo:125,hi:260,vol:"low",mix:{lab:.30,mat:.45,ovh:.12,mgn:.13},links:["concrete","diesel"],note:"Full-truckload ordering avoids short-load and standby fees that inflate small pours.",drivers:[{n:"Cement & aggregate",share:.38,inf:false,lever:"Index-linked; mix design optimization."},{n:"Placing labour",share:.27,inf:false,lever:"Pump efficiency; pour sequencing."},{n:"Delivery & short-load fees",share:.12,inf:true,lever:"Order full loads; schedule to avoid standby."},{n:"Margin",share:.13,inf:true,lever:"Volume agreements with batch plant."},{n:"Overhead",share:.10,inf:false,lever:"Plant fixed cost."}]},
+  {id:"hvac_install",fam:"con",name:"HVAC Installation",unit:"per ton of cooling",sc:2800,lo:1500,hi:5500,vol:"med",mix:{lab:.35,mat:.45,ovh:.10,mgn:.10},links:["copper","steel_hrc"],note:"Equipment brand selection and copper exposure drive material cost.",drivers:[{n:"Equipment",share:.35,inf:true,lever:"Brand/efficiency tier vs lifecycle cost."},{n:"Install labour",share:.30,inf:false,lever:"Prefab plant; modular skids."},{n:"Copper & refrigerant",share:.15,inf:false,lever:"Copper-linked."},{n:"Margin",share:.20,inf:true,lever:"Competitive bid; benchmark $/ton."}]},
+  {id:"painting",fam:"con",name:"Painting & Finishing",unit:"per sq ft",sc:2.80,lo:1.50,hi:5.00,vol:"low",mix:{lab:.55,mat:.25,ovh:.10,mgn:.10},links:["crude_brent"],note:"Coating chemistry is oil-linked; coats/spec and labour drive the rest.",drivers:[{n:"Labour",share:.52,inf:false,lever:"Spray vs brush; surface prep efficiency."},{n:"Coatings & paint",share:.25,inf:false,lever:"Oil-linked; standard vs premium systems."},{n:"Coats / spec",share:.13,inf:true,lever:"Right-number of coats; primer selection."},{n:"Margin",share:.10,inf:true,lever:"Competitive bid."}]},
+  {id:"roofing",fam:"con",name:"Roofing",unit:"per sq ft",sc:9.50,lo:5.00,hi:20.00,vol:"med",mix:{lab:.40,mat:.40,ovh:.10,mgn:.10},links:["crude_brent","steel_hrc"],note:"Membrane chemistry (oil-linked) and tear-off complexity drive cost.",drivers:[{n:"Membrane / material",share:.38,inf:false,lever:"Oil-linked; TPO vs EPDM vs metal trade-offs."},{n:"Labour",share:.38,inf:false,lever:"Crew productivity; weather scheduling."},{n:"Tear-off & complexity",share:.14,inf:true,lever:"Recover vs replace where structurally sound."},{n:"Margin",share:.10,inf:true,lever:"Competitive bid."}]},
+  {id:"civil",fam:"con",name:"Civil / Site Works",unit:"per sq ft of site",sc:12,lo:6,hi:28,vol:"med",mix:{lab:.35,mat:.30,ovh:.20,mgn:.15},links:["diesel","concrete"],note:"Earthwork equipment + fuel and aggregate volumes dominate.",drivers:[{n:"Labour",share:.32,inf:false,lever:"Productivity; balanced cut/fill."},{n:"Aggregates & concrete",share:.25,inf:false,lever:"Index-linked; on-site material reuse."},{n:"Equipment & fuel",share:.25,inf:false,lever:"Diesel-linked; fleet efficiency."},{n:"Margin",share:.18,inf:true,lever:"Unit-rate benchmarking; open-book."}]},
+  {id:"aec_design",fam:"con",name:"Architecture / Engineering Design",unit:"per design-hour",sc:165,lo:90,hi:300,vol:"low",mix:{lab:.68,mat:.02,ovh:.18,mgn:.12},links:[],note:"Fee is labour-led; seniority mix and scope/revisions drive hours.",drivers:[{n:"Seniority mix",share:.45,inf:true,lever:"Cap principal hours; leverage junior staff + reviews."},{n:"Scope & revisions",share:.20,inf:true,lever:"Lock scope; limit design iterations / change rounds."},{n:"Overhead & PI insurance",share:.18,inf:false,lever:"Firm cost base."},{n:"Margin",share:.17,inf:true,lever:"Benchmark % of construction cost / hourly rate."}]},
+  {id:"ftl",fam:"log",name:"Road Freight — Full Truckload (FTL)",unit:"per mile",sc:2.75,lo:1.80,hi:3.60,vol:"med",mix:{lab:.35,mat:.28,ovh:.22,mgn:.15},links:["diesel","dryvan"],note:"Spot ~$2.75/mi; contract runs 15–30% higher. Lane balance & fuel transparency are levers.",drivers:[{n:"Driver wage",share:.33,inf:false,lever:"Market-set; reduce detention/dwell to cut effective cost."},{n:"Fuel",share:.26,inf:false,lever:"Diesel-linked; demand transparent fuel-surcharge formula."},{n:"Lane balance / deadhead",share:.20,inf:true,lever:"Backhaul matching & lane density cut empty miles."},{n:"Carrier margin",share:.15,inf:true,lever:"Spot vs contract timing; mini-bid tenders."},{n:"Equipment & maintenance",share:.06,inf:false,lever:"Carrier-side."}]},
+  {id:"ltl",fam:"log",name:"Road Freight — Less-than-Truckload (LTL)",unit:"per shipment (CWT)",sc:38,lo:22,hi:70,vol:"med",mix:{lab:.38,mat:.22,ovh:.25,mgn:.15},links:["diesel","dryvan"],note:"Freight class & density determine price — packaging optimization moves the bill.",drivers:[{n:"Freight class / density",share:.26,inf:true,lever:"Optimize packaging & palletization to lower class."},{n:"Terminal & lane",share:.22,inf:true,lever:"Carrier strength by lane; mix carriers."},{n:"Discount off base tariff",share:.20,inf:true,lever:"Negotiate deeper base discount + FAK class."},{n:"Fuel",share:.18,inf:false,lever:"Diesel-linked surcharge; audit accessorials."},{n:"Margin",share:.14,inf:true,lever:"Benchmark net rates."}]},
+  {id:"ocean",fam:"log",name:"Ocean Freight (FCL)",unit:"per 40ft container",sc:3550,lo:1800,hi:7200,vol:"high",mix:{lab:.08,mat:.25,ovh:.42,mgn:.25},links:["ocean_feu","crude_brent"],note:"WCI ~$3,549/FEU and rising on peak season. Contract-vs-spot timing is the big lever.",drivers:[{n:"Base ocean rate",share:.48,inf:true,lever:"Lock annual contract before peak; diversify carriers/alliances."},{n:"Bunker fuel (BAF)",share:.20,inf:false,lever:"Crude-linked; demand transparent BAF formula."},{n:"Peak season / capacity",share:.18,inf:false,lever:"Book early; shift volume off peak lanes."},{n:"Surcharges & accessorials",share:.14,inf:true,lever:"Audit D&D, PSS, congestion fees line-by-line."}]},
+  {id:"air",fam:"log",name:"Air Freight",unit:"per kg",sc:4.50,lo:2.50,hi:9.00,vol:"high",mix:{lab:.10,mat:.35,ovh:.35,mgn:.20},links:["jetfuel","crude_brent"],note:"Jet-fuel and capacity drive cost; volume consolidation cuts the forwarder margin.",drivers:[{n:"Jet fuel",share:.30,inf:false,lever:"Crude-linked fuel surcharge; transparency."},{n:"Capacity / season",share:.25,inf:false,lever:"Avoid peak; deferred vs express service tiers."},{n:"Lane",share:.20,inf:true,lever:"Gateway selection; consolidation hubs."},{n:"Forwarder margin",share:.25,inf:true,lever:"Consolidate volume; benchmark all-in $/kg."}]},
+  {id:"warehouse",fam:"log",name:"Warehousing / 3PL",unit:"per pallet / month",sc:18,lo:9,hi:35,vol:"low",mix:{lab:.45,mat:.05,ovh:.35,mgn:.15},links:["eci_wage","power_comm"],note:"Labour + real estate dominate; throughput design and automation are the levers.",drivers:[{n:"Labour",share:.42,inf:false,lever:"Slotting & process design to lift pick rates."},{n:"Real estate / rent",share:.25,inf:false,lever:"Location-set; cube utilization to reduce footprint."},{n:"Throughput & automation",share:.18,inf:true,lever:"Automation/storage density lowers per-pallet cost."},{n:"Margin",share:.15,inf:true,lever:"Open-book; gain-share on productivity."}]},
+  {id:"lastmile",fam:"log",name:"Last-Mile Delivery",unit:"per parcel",sc:6.50,lo:3.50,hi:12.00,vol:"med",mix:{lab:.50,mat:.15,ovh:.20,mgn:.15},links:["diesel","eci_wage"],note:"Drops-per-hour (route density) is the single biggest cost lever.",drivers:[{n:"Driver labour",share:.45,inf:false,lever:"Market wage; route optimization to lift productivity."},{n:"Route density",share:.25,inf:true,lever:"Order batching & delivery windows raise drops/hour."},{n:"Fuel",share:.13,inf:false,lever:"Diesel-linked; EV fleet for dense routes."},{n:"Margin",share:.17,inf:true,lever:"Benchmark per-parcel cost vs in-house."}]},
+  {id:"customs",fam:"log",name:"Customs Brokerage / Forwarding",unit:"per entry",sc:150,lo:75,hi:350,vol:"low",mix:{lab:.55,mat:.03,ovh:.22,mgn:.20},links:[],note:"Per-entry fees and accessorials are highly negotiable; fee benchmarking pays off.",drivers:[{n:"Processing labour",share:.48,inf:true,lever:"Automate data feeds; reduce manual touches."},{n:"Margin / fees",share:.22,inf:true,lever:"Benchmark entry fee; cap accessorial menu."},{n:"Complexity / HS lines",share:.18,inf:true,lever:"Clean classification data reduces effort."},{n:"Overhead",share:.12,inf:false,lever:"Provider system cost."}]},
+  {id:"fleet",fam:"log",name:"Fleet Leasing & Management",unit:"per vehicle / month",sc:650,lo:350,hi:1200,vol:"med",mix:{lab:.05,mat:.55,ovh:.20,mgn:.20},links:["steel_hrc"],note:"Residual value assumptions and term length drive the monthly more than headline rate.",drivers:[{n:"Vehicle cap cost & residual",share:.44,inf:true,lever:"Optimize term/mileage to residual; resale strategy."},{n:"Interest rate",share:.20,inf:false,lever:"Rate environment; consider purchase vs lease."},{n:"Maintenance",share:.16,inf:true,lever:"Preventive maintenance; right-size service plan."},{n:"Margin & admin",share:.20,inf:true,lever:"Open-book lease factor; benchmark management fee."}]},
+  {id:"consulting",fam:"ps",name:"Management Consulting",unit:"per consultant-day",sc:1800,lo:900,hi:4500,vol:"low",mix:{lab:.55,mat:.03,ovh:.20,mgn:.22},links:["consult_day"],note:"~$1,800/day average; team leverage (junior:senior ratio) and brand premium are the levers.",drivers:[{n:"Seniority mix / leverage",share:.45,inf:true,lever:"Push junior-heavy team; cap partner days."},{n:"Brand premium & margin",share:.25,inf:true,lever:"Fixed-fee + benchmarking; tier-2 firms for commodity work."},{n:"Scope",share:.18,inf:true,lever:"Tighten scope; milestone-based phasing."},{n:"Utilization",share:.12,inf:false,lever:"Firm-side; ask for blended rate."}]},
+  {id:"legal",fam:"ps",name:"Legal Services",unit:"per attorney-hour",sc:450,lo:200,hi:1200,vol:"low",mix:{lab:.60,mat:.02,ovh:.20,mgn:.18},links:[],note:"Timekeeper seniority and rate inflation are the levers; AFAs cap exposure.",drivers:[{n:"Timekeeper seniority",share:.45,inf:true,lever:"Staffing guidelines; partner-hour caps."},{n:"Rate / brand",share:.25,inf:true,lever:"Rate freeze, step-backs, alternative fee arrangements."},{n:"Scope / matter complexity",share:.18,inf:true,lever:"Phased budgets; matter-level estimates."},{n:"Realization",share:.12,inf:false,lever:"Firm-side."}]},
+  {id:"audit",fam:"ps",name:"Audit & Accounting",unit:"per engagement-hour",sc:250,lo:130,hi:500,vol:"low",mix:{lab:.62,mat:.02,ovh:.20,mgn:.16},links:[],note:"PBC readiness on the client side directly reduces billable hours.",drivers:[{n:"Staffing mix",share:.45,inf:true,lever:"More senior associates, fewer partners on routine work."},{n:"Scope / PBC readiness",share:.20,inf:true,lever:"Strong prepared-by-client packages cut hours."},{n:"Rate",share:.20,inf:true,lever:"Multi-year fee agreement; benchmark vs peers."},{n:"Margin",share:.15,inf:true,lever:"Competitive RFP cycle."}]},
+  {id:"marketing",fam:"ps",name:"Marketing / Advertising Agency",unit:"per FTE-month",sc:14000,lo:7000,hi:28000,vol:"low",mix:{lab:.55,mat:.10,ovh:.15,mgn:.20},links:[],note:"Decoupling media spend from agency fee and capping markups exposes real cost.",drivers:[{n:"Team seniority",share:.40,inf:true,lever:"Right-size pod; cap senior strategist hours."},{n:"Agency margin / markup",share:.25,inf:true,lever:"Fee transparency; benchmark overhead & profit %."},{n:"Media pass-through markup",share:.20,inf:true,lever:"Decouple media; move to flat fee on pass-through."},{n:"Scope",share:.15,inf:true,lever:"Define deliverables; reduce retainer creep."}]},
+  {id:"staffing",fam:"ps",name:"Recruitment / Contingent Staffing",unit:"per placement",sc:18000,lo:9000,hi:30000,vol:"low",mix:{lab:.45,mat:.05,ovh:.25,mgn:.25},links:["staff_mu"],note:"Perm fees run 15–25% of salary; temp markup 25–50%. Both are highly negotiable.",drivers:[{n:"Fee % of salary / markup",share:.48,inf:true,lever:"Negotiate % down + volume rebate tiers."},{n:"Effort / time-to-fill",share:.20,inf:true,lever:"Exclusive mandates & clean briefs cut effort."},{n:"Margin",share:.16,inf:true,lever:"Open-book pay-to-bill on contingent."},{n:"Guarantee / rebate terms",share:.16,inf:true,lever:"Longer replacement guarantee; tiered rebate."}]},
+  {id:"training",fam:"ps",name:"Training & Development",unit:"per training-day",sc:3500,lo:1500,hi:7000,vol:"low",mix:{lab:.50,mat:.12,ovh:.18,mgn:.20},links:[],note:"Content reuse and digital delivery cut per-learner cost dramatically.",drivers:[{n:"Trainer rate / seniority",share:.45,inf:true,lever:"Train-the-trainer; internal facilitators."},{n:"Content development",share:.18,inf:true,lever:"Reuse/licence content vs bespoke build."},{n:"Margin",share:.20,inf:true,lever:"Volume / multi-cohort pricing."},{n:"Logistics",share:.17,inf:true,lever:"Virtual/blended delivery cuts venue & travel."}]},
+  {id:"research",fam:"ps",name:"Market Research",unit:"per project",sc:45000,lo:20000,hi:90000,vol:"low",mix:{lab:.45,mat:.20,ovh:.15,mgn:.20},links:[],note:"Sample size and methodology drive cost; phasing de-risks spend.",drivers:[{n:"Analyst labour",share:.40,inf:true,lever:"Scope analysis depth; leverage existing data."},{n:"Sample / panel cost",share:.25,inf:true,lever:"Right-size sample; reuse panels."},{n:"Margin",share:.20,inf:true,lever:"Competitive bid; modular pricing."},{n:"Tooling / data",share:.15,inf:true,lever:"Client-provided data sources."}]},
+  {id:"corrugated",fam:"mfg",name:"Packaging — Corrugated",unit:"per 1,000 boxes",sc:950,lo:550,hi:1800,vol:"med",mix:{lab:.12,mat:.60,ovh:.15,mgn:.13},links:["containerbd"],note:"Containerboard is ~52% of cost and index-linked — board grade/right-weighting is the lever.",drivers:[{n:"Containerboard price",share:.52,inf:false,lever:"Index-linked; lock pricing & demand index transparency."},{n:"Board grade / spec",share:.18,inf:true,lever:"Right-weight board (ECT vs Mullen); reduce over-spec."},{n:"Converting & print",share:.16,inf:true,lever:"Fewer print colors; standard sizes/tooling."},{n:"Margin",share:.14,inf:true,lever:"Open-book on board vs conversion margin."}]},
+  {id:"injection",fam:"mfg",name:"Plastic Components — Injection Molding",unit:"per 1,000 parts",sc:380,lo:180,hi:900,vol:"med",mix:{lab:.10,mat:.50,ovh:.25,mgn:.15},links:["pp_resin","pe_resin","power_ind"],note:"Resin is ~half the cost and index-linked; tool amortization rewards volume.",drivers:[{n:"Resin price",share:.45,inf:false,lever:"PP/PE index-linked; resin pass-through transparency."},{n:"Tooling amortization",share:.20,inf:true,lever:"Higher volumes / longer tool life spread tooling."},{n:"Cycle time & energy",share:.18,inf:true,lever:"Automation & cycle optimization; energy-efficient presses."},{n:"Margin",share:.17,inf:true,lever:"Should-cost vs quote on resin + conversion."}]},
+  {id:"metal_fab",fam:"mfg",name:"Metal Fabrication / Machined Parts",unit:"per kg",sc:8.50,lo:4.50,hi:18.00,vol:"med",mix:{lab:.30,mat:.45,ovh:.15,mgn:.10},links:["steel_hrc","aluminum"],note:"Metal price is index-linked; DfM and yield are the engineering levers.",drivers:[{n:"Metal price",share:.42,inf:false,lever:"Steel/aluminum index-linked; separate material from conversion."},{n:"Machining time / labour",share:.28,inf:true,lever:"Design-for-manufacturability; reduce operations."},{n:"Scrap / yield",share:.15,inf:true,lever:"Nesting & yield optimization."},{n:"Margin",share:.15,inf:true,lever:"Open-book material + conversion rate."}]},
+  {id:"mro",fam:"mfg",name:"Industrial MRO Supplies",unit:"per line item",sc:45,lo:25,hi:90,vol:"low",mix:{lab:.08,mat:.55,ovh:.17,mgn:.20},links:[],note:"Tail-spend fragmentation and distributor margins are the savings pools.",drivers:[{n:"Manufacturer cost",share:.40,inf:false,lever:"Brand vs equivalent; standardize SKUs."},{n:"Distributor margin",share:.35,inf:true,lever:"Negotiate matrix/tiered discount off list."},{n:"Tail-spend fragmentation",share:.15,inf:true,lever:"Consolidate suppliers; catalog control."},{n:"Freight",share:.10,inf:true,lever:"Order consolidation; free-freight thresholds."}]},
+  {id:"print",fam:"mfg",name:"Print & Marketing Collateral",unit:"per 1,000 units",sc:420,lo:200,hi:900,vol:"low",mix:{lab:.15,mat:.45,ovh:.20,mgn:.20},links:["containerbd","crude_brent"],note:"Paper + ink are index-linked; run length and ganging drive unit economics.",drivers:[{n:"Paper stock",share:.35,inf:false,lever:"Index-linked; lighter stock / standard sizes."},{n:"Run length / setup",share:.22,inf:true,lever:"Longer runs & gang printing amortize setup."},{n:"Margin",share:.20,inf:true,lever:"Competitive bid; benchmark unit cost."},{n:"Ink & plates",share:.12,inf:false,lever:"Oil-linked; fewer colors."},{n:"Finishing",share:.11,inf:true,lever:"Simplify finishing/binding."}]}
+];
+
+/* ============================== APP LOGIC ============================== */
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+CATS.forEach(c=>{let t=c.mix.lab+c.mix.mat+c.mix.ovh+c.mix.mgn;["lab","mat","ovh","mgn"].forEach(k=>c.mix[k]/=t);});
+
+const nf=new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
+function money(n){n=+n||0;let a=Math.abs(n);if(a>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(a>=1000)return '$'+nf.format(Math.round(n));if(a>=100)return '$'+n.toFixed(0);return '$'+n.toFixed(2);}
+function uprice(n){n=+n||0;let a=Math.abs(n);if(a>=1000)return '$'+nf.format(Math.round(n));if(a>=100)return '$'+n.toFixed(0);if(a>=10)return '$'+n.toFixed(1);return '$'+n.toFixed(2);}
+function pct(n,d){d=d==null?1:d;return (n>0?'+':'')+n.toFixed(d)+'%';}
+function niceRound(x){if(x<10)return Math.round(x/0.05)*0.05;if(x<100)return Math.round(x);if(x<1000)return Math.round(x/10)*10;if(x<20000)return Math.round(x/50)*50;return Math.round(x/500)*500;}
+
+let state={cat:CATS[0],qty:1000,quote:0,sim:{},userQuote:false};
+
+/* core model — should-cost auto-shifts with LIVE market data (value vs base), plus optional user scenario (sim) */
+function model(cat,sim){
+  sim=sim||{};
+  const S=cat.drivers.filter(d=>!d.inf).reduce((a,d)=>a+d.share,0);
+  const n=cat.links.length, expo=n?S/n:0;
+  let auto=1, user=0;
+  cat.links.forEach(id=>{const m=MARKET[id];if(!m)return;
+    auto+=expo*((m.value/m.base-1)*100)/100;
+    user+=expo*((sim[id]||0))/100;});
+  const mult=auto+user, sc=cat.sc*mult;
+  return {sc,expo,S,mult,auto,liveDelta:(auto-1)*100,
+    comp:{mat:sc*cat.mix.mat,lab:sc*cat.mix.lab,ovh:sc*cat.mix.ovh,mgn:sc*cat.mix.mgn},
+    lo:cat.lo*mult,hi:cat.hi*mult};
+}
+function influenceShare(cat){return cat.drivers.filter(d=>d.inf).reduce((a,d)=>a+d.share,0);}
+
+/* charts */
+const COL={mat:'#22d3ee',lab:'#8b5cf6',ovh:'#ec4899',mgn:'#fbbf24',excess:'#fb7185'};
+function donut(segs,size,center){
+  size=size||180;const thick=36,r=(size-thick)/2,cx=size/2,cy=size/2,C=2*Math.PI*r;
+  let off=0,total=segs.reduce((a,s)=>a+s.v,0)||1,arcs='';
+  segs.forEach(s=>{let len=C*(s.v/total);arcs+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.c}" stroke-width="${thick}" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})" style="filter:drop-shadow(0 0 4px ${s.c}88)"/>`;off+=len;});
+  let t=center?`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="20" font-weight="800" fill="#eaf0ff">${center.top}</text><text x="${cx}" y="${cy+15}" text-anchor="middle" font-size="11" fill="#7e88bd" font-weight="600">${center.bot}</text>`:'';
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${arcs}${t}</svg>`;
+}
+function hstack(segs,total){total=total||segs.reduce((a,s)=>a+s.v,0)||1;
+  return `<div style="display:flex;height:44px;border-radius:10px;overflow:hidden;border:1px solid var(--line)">`+
+   segs.filter(s=>s.v>0).map(s=>`<div title="${s.label}: ${money(s.v)}" style="flex:0 0 ${(s.v/total*100).toFixed(2)}%;background:${s.c};display:grid;place-items:center;color:#0a0d26;font-size:10.5px;font-weight:800;overflow:hidden;white-space:nowrap;box-shadow:0 0 12px ${s.c}66 inset">${s.v/total>0.1?Math.round(s.v/total*100)+'%':''}</div>`).join('')+`</div>`;
+}
+function tornado(drivers){
+  const max=Math.max.apply(0,drivers.map(d=>d.share));
+  return drivers.slice().sort((a,b)=>b.share-a.share).map(d=>{
+    const w=(d.share/max*100).toFixed(0);
+    const bg=d.inf?'linear-gradient(90deg,#2dd4bf,#22d3ee)':'linear-gradient(90deg,#6366f1,#8b5cf6)';
+    const sens=(d.share*10).toFixed(1);
+    return `<div class="driver"><div class="driver-top">
+      <span class="driver-name">${d.n} ${d.inf?'<span class="badge lever">◆ Influenceable</span>':'<span class="badge fixed">Market-set</span>'}</span>
+      <span style="font-weight:800;color:var(--ink)">${(d.share*100).toFixed(0)}%</span></div>
+      <div class="bar"><i style="width:${w}%;background:${bg};box-shadow:0 0 10px ${d.inf?'#22d3ee88':'#8b5cf688'}"></i></div>
+      <div class="driver-note">${d.lever} <b style="color:var(--txt)">· ±10% here ≈ ±${sens}% on total cost</b></div></div>`;
+  }).join('');
+}
+
+/* panels */
+function renderKPIs(){
+  const m=model(state.cat,state.sim),q=state.quote,qty=state.qty;
+  const target=m.sc, gap=q>0?(q-target)/q*100:0, sav=Math.max(0,(q-target))*qty;
+  let gapCls=q<=0?'':gap<=3?'good':gap<=15?'warn':'bad';
+  let gapTxt=q<=0?'—':pct(gap), gapSub=q<=0?'enter a quote':(gap<0?'quote below model':(gap<=3?'fair / at model':'above should-cost'));
+  $('#kpis').innerHTML=`
+    <div class="kpi" style="--gl:rgba(34,211,238,.22)"><span class="accent" style="background:linear-gradient(var(--cyan),var(--teal))"></span><div class="k-lab">Should-Cost / ${state.cat.unit.replace('per ','')}</div><div class="k-val">${uprice(m.sc)}</div><div class="k-sub">${m.liveDelta?'live-adjusted '+pct(m.liveDelta)+' · ':''}band ${uprice(m.lo)}–${uprice(m.hi)}</div></div>
+    <div class="kpi" style="--gl:rgba(124,92,255,.22)"><span class="accent" style="background:linear-gradient(var(--primary),var(--violet))"></span><div class="k-lab">Supplier Quote / unit</div><div class="k-val">${q>0?uprice(q):'—'}</div><div class="k-sub">annual: ${q>0?money(q*qty):'—'} · ${nf.format(qty)} units</div></div>
+    <div class="kpi ${gapCls}" style="--gl:${gap<=3?'rgba(52,211,153,.22)':gap<=15?'rgba(251,191,36,.22)':'rgba(251,113,133,.24)'}"><span class="accent" style="background:${gap<=3?'var(--green)':gap<=15?'var(--amber)':'var(--rose)'}"></span><div class="k-lab">Gap vs Should-Cost</div><div class="k-val">${gapTxt}</div><div class="k-sub">${gapSub}</div></div>
+    <div class="kpi ${sav>0?'good':''}" style="--gl:rgba(52,211,153,.22)"><span class="accent" style="background:linear-gradient(var(--green),var(--lime))"></span><div class="k-lab">Savings Opportunity</div><div class="k-val">${sav>0?money(sav):'—'}</div><div class="k-sub">annual, negotiating to should-cost</div></div>`;
+}
+function renderCalc(){
+  const m=model(state.cat,state.sim),c=state.cat,qty=state.qty;
+  const rows=[['mat','Materials / Commodities',COL.mat],['lab','Labour',COL.lab],['ovh','Overhead',COL.ovh],['mgn','Margin (fair)',COL.mgn]];
+  const segs=rows.map(r=>({label:r[1],v:m.comp[r[0]],c:r[2]}));
+  let tbl=rows.map(r=>`<tr><td><span class="swatch" style="background:${r[2]};--sg:${r[2]}"></span>${r[1]}</td><td class="num">${(c.mix[r[0]]*100).toFixed(0)}%</td><td class="num">${uprice(m.comp[r[0]])}</td><td class="num">${money(m.comp[r[0]]*qty)}</td></tr>`).join('');
+  const live=m.liveDelta?`<div class="note amber">📈 Auto-adjusted <b>${pct(m.liveDelta)}</b> from baseline by today's live market data (updated ${PM.updated}).</div>`:'';
+  const simN=(state.sim&&Object.values(state.sim).some(v=>v))?`<div class="note">Includes your scenario from the Live Market tab.</div>`:'';
+  $('#panel-calc').innerHTML=`<div class="grid g-12">
+    <div class="card"><div class="card-hd"><div><h3>Bottom-up Should-Cost Breakdown</h3><div class="desc">${c.name} · ${c.unit} · ${FAM[c.fam]}</div></div><span class="pill ${c.vol}">${c.vol.toUpperCase()} volatility</span></div>
+      <table><thead><tr><th>Cost element</th><th class="num">Share</th><th class="num">Per unit</th><th class="num">Annual (${nf.format(qty)})</th></tr></thead><tbody>
+      ${tbl}<tr class="total"><td>Total should-cost</td><td class="num">100%</td><td class="num">${uprice(m.sc)}</td><td class="num">${money(m.sc*qty)}</td></tr></tbody></table>
+      ${live}${simN}<div class="note">${c.note}</div></div>
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <h3 style="align-self:flex-start">Cost Composition</h3>
+      <div style="margin:14px 0 6px">${donut(segs,196,{top:uprice(m.sc),bot:'should-cost'})}</div>
+      <div class="legend">${rows.map(r=>`<span><span class="swatch" style="background:${r[2]};--sg:${r[2]}"></span>${r[1]} ${(c.mix[r[0]]*100).toFixed(0)}%</span>`).join('')}</div>
+      <div class="note" style="width:100%">A fair supplier earns the <b>${(c.mix.mgn*100).toFixed(0)}% margin</b> shown. Anything a quote adds on top is negotiation headroom.</div></div></div>`;
+}
+function renderMarket(){
+  const c=state.cat;
+  const arrow=v=>v>0.05?`<span class="trend up">▲ ${pct(v)}</span>`:v<-0.05?`<span class="trend dn">▼ ${pct(v)}</span>`:`<span class="trend flat">▬ flat</span>`;
+  let rows=Object.keys(MARKET).map(id=>{const r=MARKET[id];const lk=c.links.includes(id);
+    return `<tr style="${lk?'background:rgba(34,211,238,.07)':''}"><td><b style="color:var(--ink)">${r.label}</b>${lk?' <span class="data-tag">drives this category</span>':''}<div style="font-size:11px;color:var(--mute)">${r.note}</div></td>
+    <td class="num"><b style="color:var(--ink)">${r.value<10?r.value:nf.format(r.value)}</b> <span style="color:var(--mute);font-size:11px">${r.unit}</span></td>
+    <td class="num">${arrow(r.mom)}<div style="font-size:10px;color:var(--mute)">MoM</div></td>
+    <td style="text-align:center"><span class="pill ${r.vol}">${r.vol}</span></td>
+    <td style="font-size:11px;color:var(--mute)">${r.src}</td></tr>`;}).join('');
+  let sim='';
+  if(c.links.length){const m=model(state.cat,state.sim);
+    sim=`<div class="card" style="margin-top:18px"><div class="card-hd"><div><h3>⚡ Live Should-Cost Simulation</h3><div class="desc">Models already auto-adjust to today's data. Drag to test a <b>further</b> scenario for <b>${c.name}</b>. Combined commodity/labour exposure: <b>${(m.S*100).toFixed(0)}%</b>.</div></div>
+      <button class="btn btn-ghost" onclick="state.sim={};render()">Reset scenario</button></div>
+      ${c.links.map(id=>{const r=MARKET[id],v=state.sim[id]||0;
+        return `<div class="simrow"><span class="nm">${r.label}</span>
+          <input type="range" min="-25" max="25" step="1" value="${v}" oninput="state.sim['${id}']=+this.value;render()">
+          <span class="vv">scenario ${pct(v,0)} · exposure ${(m.expo*100).toFixed(0)}%</span></div>`;}).join('')}
+      <div class="note ${m.mult!==1?'amber':''}" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Re-priced should-cost</span><b style="font-size:18px;color:var(--ink)">${uprice(m.sc)} <span style="font-size:12px;color:${m.mult>1?'var(--rose)':m.mult<1?'var(--green)':'var(--mute)'}">(${pct((m.mult-1)*100)})</span></b></div></div>`;
+  } else {
+    sim=`<div class="note" style="margin-top:18px">This category has <b>low direct commodity exposure</b> — cost is driven by negotiated rates, margin and scope rather than traded indices. The biggest levers live in <b>Cost Drivers</b> and <b>Supplier Structure</b>.</div>`;
+  }
+  $('#panel-market').innerHTML=`<div class="alert ok" style="margin-bottom:16px"><span>🔄</span><span><b>Prices auto-refresh daily</b> via an LLM market scan — last update <b>${PM.updated}</b> (${PM.nextRefresh}). Every should-cost model below re-prices automatically from this data; press <b>↻ Reload latest</b> after a refresh.</span></div>
+    <div class="card"><div class="card-hd"><div><h3>Live Market Rate Monitor</h3><div class="desc">Commodity, energy, freight and labour benchmarks from public market sources.</div></div></div>
+    <div style="overflow-x:auto"><table class="mkt-table"><thead><tr><th>Index / benchmark</th><th class="num">Level</th><th class="num">Trend</th><th style="text-align:center">Volatility</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table></div></div>${sim}`;
+}
+function renderDrivers(){
+  const c=state.cat,inf=influenceShare(c);
+  $('#panel-drivers').innerHTML=`<div class="grid g-12">
+    <div class="card"><div class="card-hd"><div><h3>Cost Driver Sensitivity</h3><div class="desc">The 3–5 drivers that move ${c.name} cost, ranked by impact. Teal = you can influence it in negotiation.</div></div></div>
+      ${tornado(c.drivers)}</div>
+    <div class="card"><h3>Where Your Leverage Is</h3>
+      <div style="text-align:center;margin:16px 0">${donut([{label:'Influenceable',v:inf,c:'#2dd4bf'},{label:'Market-set',v:1-inf,c:'#5b6597'}],170,{top:(inf*100).toFixed(0)+'%',bot:'you influence'})}</div>
+      <div class="legend" style="justify-content:center"><span><span class="swatch" style="background:#2dd4bf;--sg:#2dd4bf"></span>Negotiation influence</span><span><span class="swatch" style="background:#5b6597"></span>Market / structural</span></div>
+      <div class="note"><b>${(inf*100).toFixed(0)}% of total cost</b> sits with drivers you can shape (spec, scope, mix, margin, term). The rest is index-linked — there, your play is <b>transparency and pass-through formulas</b>, not headline price.</div>
+      <div class="alert ${c.vol==='high'?'':'ok'}" style="margin-top:14px">${c.vol==='high'?'⚠ High commodity volatility — favour index-linked clauses and shorter price-hold windows.':'✓ Relatively stable inputs — pursue longer fixed-price commitments.'}</div></div></div>`;
+}
+function renderSupplier(){
+  const m=model(state.cat,state.sim),c=state.cat,q=state.quote>0?state.quote:m.sc;
+  const cost=m.comp.mat+m.comp.lab+m.comp.ovh, fairMgn=m.comp.mgn, excess=Math.max(0,q-m.sc);
+  const segs=[{label:'Materials',v:m.comp.mat,c:COL.mat},{label:'Labour',v:m.comp.lab,c:COL.lab},{label:'Overhead',v:m.comp.ovh,c:COL.ovh},{label:'Fair margin',v:fairMgn,c:COL.mgn}];
+  if(excess>0)segs.push({label:'Excess over should-cost',v:excess,c:COL.excess});
+  const tot=Math.max(q,m.sc), ebitFair=(fairMgn/m.sc*100), ebitQuote=q>0?((fairMgn+excess)/q*100):ebitFair;
+  $('#panel-supplier').innerHTML=`<div class="card"><div class="card-hd"><div><h3>Supplier Cost-Structure Estimate</h3><div class="desc">Reverse-engineered P&L for a typical ${c.name} supplier — so you know where their flex is.</div></div><span class="badge">${FAM[c.fam]}</span></div>
+    <div style="margin:8px 0 8px;font-size:12px;color:var(--mute);display:flex;justify-content:space-between"><span>Supplier price build-up (per unit)</span><span>Quote: <b style="color:var(--ink)">${uprice(q)}</b></span></div>
+    ${hstack(segs,tot)}
+    <div class="legend">${segs.map(s=>`<span><span class="swatch" style="background:${s.c};--sg:${s.c}"></span>${s.label} ${uprice(s.v)}</span>`).join('')}</div>
+    <div class="grid g-3" style="margin-top:18px">
+      <div class="card soft"><div class="k-lab">Est. cost to serve</div><div class="k-val" style="font-size:21px">${uprice(cost)}</div><div class="k-sub">materials + labour + overhead</div></div>
+      <div class="card soft"><div class="k-lab">Fair embedded margin</div><div class="k-val" style="font-size:21px">${ebitFair.toFixed(0)}%</div><div class="k-sub">${uprice(fairMgn)}/unit at should-cost</div></div>
+      <div class="card soft" style="${excess>0?'border-color:rgba(251,113,133,.4)':''}"><div class="k-lab">Margin in their quote</div><div class="k-val" style="font-size:21px;color:${excess>0?'var(--rose)':'inherit'}">${ebitQuote.toFixed(0)}%</div><div class="k-sub">${excess>0?'+'+uprice(excess)+'/unit excess = headroom':'at or below fair margin'}</div></div></div>
+    <div class="note">${excess>0?`The quote implies an estimated <b>${ebitQuote.toFixed(0)}% margin</b> vs a fair <b>${ebitFair.toFixed(0)}%</b>. The <b style="color:var(--rose)">${uprice(excess)}/unit</b> gap (${money(excess*state.qty)}/yr) is recoverable — anchor to cost-to-serve, not their list.`:`The quote sits near modelled cost-to-serve. Flex is limited on price — shift to <b>scope, volume tiers and total cost of ownership</b>.`}</div>
+    <div class="note">Hardest-to-move cost: <b>${c.drivers.filter(d=>!d.inf).sort((a,b)=>b.share-a.share)[0]?.n||'labour'}</b> (market-set). Easiest for them to concede: <b>margin and overhead</b>.</div></div>`;
+}
+function renderBench(){
+  const m=model(state.cat,state.sim),c=state.cat,q=state.quote,qty=state.qty;
+  const lo=m.lo,med=m.sc,hi=m.hi, span=hi-lo||1, posOf=x=>Math.max(2,Math.min(98,(x-lo)/span*100));
+  const stretch=lo, walk=hi, gap=q>0?(q-med):0, gapPct=q>0?gap/q*100:0;
+  const rows=[['Aggressive target (market low)',stretch,'#a78bfa'],['Should-cost (fair target)',med,'var(--green)'],['Walk-away (market high)',walk,'var(--amber)'],['Supplier quote',q,'var(--rose)']];
+  let qMark=q>0?`<div class="mk q" style="left:${posOf(q)}%"><div class="lb">Quote ${uprice(q)}</div><div class="pin"></div></div>`:'';
+  let cmpTbl=rows.map(r=>{const v=r[1];if(v<=0)return '';const d=v-med,dp=med?d/med*100:0;
+    return `<tr><td><span class="swatch" style="background:${r[2]}"></span>${r[0]}</td><td class="num">${uprice(v)}</td><td class="num">${money(v*qty)}</td><td class="num" style="color:${Math.abs(dp)<1?'var(--mute)':dp>0?'var(--rose)':'var(--green)'}">${r[0].indexOf('Should')>=0?'—':pct(dp)}</td></tr>`;}).join('');
+  let verdict;
+  if(q<=0)verdict=`<div class="alert">Enter the supplier's quote in the top bar to generate the gap analysis.</div>`;
+  else if(q<=med*1.03)verdict=`<div class="alert ok">✓ The quote (${uprice(q)}) is at/below should-cost — competitive. Lock the rate and secure value-adds.</div>`;
+  else if(q<=hi)verdict=`<div class="alert">◐ Quote is <b>${pct(gapPct)}</b> above fair should-cost but within the market band. Headroom of <b>${money(gap*qty)}/yr</b> to target is well-supported.</div>`;
+  else verdict=`<div class="alert bad">⚠ Quote is <b>${pct(gapPct)}</b> above should-cost and <b>above the top of the market band</b>. Strong case — target <b>${money((q-med)*qty)}/yr</b>.</div>`;
+  $('#panel-bench').innerHTML=`<div class="card"><div class="card-hd"><div><h3>Benchmark & Gap Analysis</h3><div class="desc">${c.name} · quote vs should-cost vs market band (${uprice(lo)}–${uprice(hi)}).</div></div></div>
+    ${verdict}
+    <div class="scale"><div class="track"></div>
+      <div class="mk sc" style="left:${posOf(med)}%"><div class="lb">Should-cost ${uprice(med)}</div><div class="pin"></div></div>${qMark}</div>
+    <div class="legend" style="margin-top:24px"><span style="color:var(--green)">◆ Should-cost (fair)</span><span style="color:var(--rose)">◆ Your quote</span><span style="color:var(--mute)">band = market low → high</span></div>
+    <table style="margin-top:16px"><thead><tr><th>Reference point</th><th class="num">Per unit</th><th class="num">Annual</th><th class="num">vs should-cost</th></tr></thead><tbody>${cmpTbl}</tbody></table>
+    <div class="note">Headroom is to the <b>fair should-cost</b>, which already includes a reasonable supplier margin (${(c.mix.mgn*100).toFixed(0)}%). Open at the aggressive target; settle at or below should-cost.</div></div>`;
+}
+function renderBrief(){
+  const m=model(state.cat,state.sim),c=state.cat,q=state.quote>0?state.quote:niceRound(m.sc*1.15),qty=state.qty;
+  const target=m.sc, stretch=m.lo, walk=m.hi, sav=Math.max(0,(q-target))*qty, savPct=q>0?(q-target)/q*100:0;
+  const levers=c.drivers.filter(d=>d.inf).sort((a,b)=>b.share-a.share).slice(0,4);
+  let mkt=c.links.map(id=>{const r=MARKET[id];const dir=r.mom>0.05?'rising':r.mom<-0.05?'easing':'stable';
+    const play=r.mom>0.05?`expect upward pressure — push to lock current pricing / index caps`:r.mom<-0.05?`prices are easing — demand the reduction be passed through`:`stable — favourable window to fix price`;
+    return `<li><b>${r.label} ${r.value<10?r.value:nf.format(r.value)} ${r.unit} (${pct(r.mom)} MoM, ${dir})</b> — ${play}. <span class="data-tag">${r.src}</span></li>`;}).join('');
+  if(!mkt)mkt=`<li>Low traded-commodity exposure — leverage is in <b>margin transparency, scope and volume</b>.</li>`;
+  const concessions=[`<b>Volume / spend commitment</b> — consolidate ${nf.format(qty)} units/yr into one award for a tiered discount.`,`<b>Longer term</b> — 2–3 year commitment for a lower unit rate and a price-hold/index cap.`,`<b>Faster payment</b> — improved terms for a price concession.`,`<b>Reference / case study</b> — a logo in return for best-in-class pricing.`];
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  window._briefText=()=>`NEGOTIATION BRIEF — ${c.name}\n${today}\n\nVolume: ${nf.format(qty)} ${c.unit.replace('per ','')}/yr | Quote: ${uprice(q)}/unit (${money(q*qty)}/yr)\n\nPRICE POSITIONS (per unit)\n- Opening anchor: ${uprice(stretch)}\n- Target (fair should-cost): ${uprice(target)}\n- Walk-away: ${uprice(walk)}\n\nSAVINGS: ${money(sav)}/yr (${savPct.toFixed(1)}%) to should-cost.\n\nLEVERAGE\n`+levers.map((d,i)=>`${i+1}. ${d.n} — ${d.lever}`).join('\n')+`\n\nMARKET CONTEXT\n`+c.links.map(id=>{const r=MARKET[id];return `- ${r.label}: ${r.value} ${r.unit} (${pct(r.mom)} MoM) [${r.src}]`;}).join('\n')+`\n\nCONCESSIONS\n- Volume commitment\n- Longer term\n- Faster payment\n- Reference\n\nData: materials ${(c.mix.mat*100).toFixed(0)}%, labour ${(c.mix.lab*100).toFixed(0)}%, overhead ${(c.mix.ovh*100).toFixed(0)}%, margin ${(c.mix.mgn*100).toFixed(0)}%. Band ${uprice(c.lo)}–${uprice(c.hi)}. Live data ${PM.updated}.\n\nGenerated by ProcureMind.`;
+  $('#panel-brief').innerHTML=`
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save as PDF</button>
+      <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(window._briefText()).then(()=>{this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy brief text',1500)})">📋 Copy brief text</button></div>
+    <div class="brief"><div class="brief-hd"><h2>Negotiation Brief — ${c.name}</h2><p>${FAM[c.fam]} · ${today} · ${nf.format(qty)} ${c.unit.replace('per ','')}/yr · quote ${uprice(q)}/unit (${money(q*qty)}/yr)</p></div>
+      <div class="brief-body">
+        <div class="brief-grid">
+          <div class="price-box stretch"><div class="pl">Opening Anchor</div><div class="pv">${uprice(stretch)}</div><div class="pl" style="font-weight:600;text-transform:none;color:var(--mute)">aggressive · market low</div></div>
+          <div class="price-box target"><div class="pl">Target Price</div><div class="pv">${uprice(target)}</div><div class="pl" style="font-weight:600;text-transform:none;color:var(--mute)">fair should-cost</div></div>
+          <div class="price-box walk"><div class="pl">Walk-Away</div><div class="pv">${uprice(walk)}</div><div class="pl" style="font-weight:600;text-transform:none;color:var(--mute)">do not exceed</div></div></div>
+        <div class="alert ok" style="font-size:13.5px"><span>💰</span><span><b>Savings opportunity: ${money(sav)}/yr</b> (${savPct.toFixed(1)}% of quoted spend) negotiating from quote to should-cost. Open at anchor; settle at/below target.</span></div>
+        <h4>Key Leverage Points</h4><ol>${levers.map(d=>`<li><b>${d.n}.</b> ${d.lever}</li>`).join('')}</ol>
+        <h4>Market Context & Timing</h4><ul>${mkt}</ul>
+        <h4>Concessions You Can Offer</h4><ul>${concessions.map(x=>`<li>${x}</li>`).join('')}</ul>
+        <h4>Data Behind Each Position</h4><ul>
+          <li>Bottom-up build: <b>materials ${(c.mix.mat*100).toFixed(0)}% · labour ${(c.mix.lab*100).toFixed(0)}% · overhead ${(c.mix.ovh*100).toFixed(0)}% · fair margin ${(c.mix.mgn*100).toFixed(0)}%</b>.</li>
+          <li>Market band <b>${uprice(c.lo)}–${uprice(c.hi)}</b>; volatility <b>${c.vol}</b>; live data <b>${PM.updated}</b>.</li>
+          <li><b>${(influenceShare(c)*100).toFixed(0)}%</b> of cost is within negotiation influence; index-linked inputs via transparent pass-through clauses.</li></ul>
+      </div></div>`;
+}
+function renderRefresh(){
+  const c=state.cat, alerts=c.links.filter(id=>Math.abs(MARKET[id].mom)>=3);
+  let alertHtml=alerts.length?alerts.map(id=>{const r=MARKET[id];return `<div class="alert">⚠ <b>${r.label}</b> moved <b>${pct(r.mom)}</b> MoM (${r.vol} vol) — ${c.name} is sensitive to this. ${r.mom>0?'Lock pricing soon.':'Pursue cost pass-through.'}</div>`;}).join(''):`<div class="alert ok">✓ No linked index moved ≥3% — ${c.name} should-cost is stable.</div>`;
+  let risk=c.links.length?c.links.map(id=>{const r=MARKET[id];const drift=(r.value/r.base-1)*100;return `<tr><td><b style="color:var(--ink)">${r.label}</b></td><td class="num">${r.value<10?r.value:nf.format(r.value)} <span style="color:var(--mute);font-size:11px">${r.unit}</span></td><td class="num">${pct(r.mom)}</td><td class="num" style="color:${Math.abs(drift)<0.1?'var(--mute)':drift>0?'var(--rose)':'var(--green)'}">${pct(drift)}</td><td style="text-align:center"><span class="pill ${r.vol}">${r.vol}</span></td></tr>`;}).join(''):`<tr><td colspan="5" style="color:var(--mute)">No traded-commodity links — low input-price risk.</td></tr>`;
+  $('#panel-refresh').innerHTML=`<div class="grid g-2">
+    <div class="card"><h3>🔄 Automated Daily Market Refresh</h3><div class="desc">Keeps every should-cost model current — no manual effort.</div>
+      <div style="display:flex;gap:14px;margin:10px 0 4px"><div class="card soft" style="flex:1"><div class="k-lab">Last refreshed</div><div class="k-val" style="font-size:18px">${PM.updated}</div></div>
+      <div class="card soft" style="flex:1"><div class="k-lab">Next refresh</div><div class="k-val" style="font-size:18px">End of day</div></div>
+      <div class="card soft" style="flex:1"><div class="k-lab">Cadence</div><div class="k-val" style="font-size:18px">Daily</div></div></div>
+      <div class="note">An LLM task re-pulls commodity, freight, energy and labour benchmarks each evening and rewrites <b>market-data.js</b>. The site reads it on load and re-prices all 50 models from the calibration baseline — so prices update <b>automatically</b>.</div>
+      <div class="note">Pipeline: ① LLM web-scan of indices → ② overwrite data file (keep calibration base) → ③ site auto re-prices via live-vs-base deltas → ④ flag categories past alert thresholds.</div></div>
+    <div class="card"><h3>📊 Commodity Risk Dashboard — ${c.name}</h3><div class="desc">Linked indices: current move, drift since calibration, and volatility.</div>
+      ${alertHtml}
+      <table style="margin-top:8px"><thead><tr><th>Linked index</th><th class="num">Level</th><th class="num">MoM</th><th class="num">Drift</th><th style="text-align:center">Vol</th></tr></thead><tbody>${risk}</tbody></table>
+      <div class="note">Category volatility: <b class="pill ${c.vol}" style="font-size:11px">${c.vol.toUpperCase()}</b> — ${c.vol==='high'?'review quarterly; prefer index-linked contracts.':c.vol==='med'?'review every 6 months.':'annual review sufficient.'}</div></div></div>`;
+}
+function render(){renderKPIs();renderCalc();renderMarket();renderDrivers();renderSupplier();renderBench();renderBrief();renderRefresh();}
+
+/* wiring */
+function buildSelect(){
+  const groups={};CATS.forEach(c=>{(groups[c.fam]=groups[c.fam]||[]).push(c);});
+  let html='';Object.keys(FAM).forEach(f=>{if(!groups[f])return;html+=`<optgroup label="${FAM[f]}">`+groups[f].map(c=>`<option value="${c.id}">${c.name}</option>`).join('')+`</optgroup>`;});
+  $('#catSelect').innerHTML=html;
+}
+function setCategory(id){
+  state.cat=CATS.find(c=>c.id===id)||CATS[0];state.sim={};state.userQuote=false;
+  const m=model(state.cat,{});state.quote=niceRound(m.sc*1.15);$('#quoteInput').value=state.quote;
+  $('#unitHint').textContent=state.cat.unit.replace('per ','').split(' / ')[0]+'s';
+  $('#quoteHint').textContent=state.cat.unit;render();
+}
+$('#catSelect').addEventListener('change',e=>setCategory(e.target.value));
+$('#qtyInput').addEventListener('input',e=>{state.qty=Math.max(0,+e.target.value||0);render();});
+$('#quoteInput').addEventListener('input',e=>{state.quote=Math.max(0,+e.target.value||0);state.userQuote=true;render();});
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{$$('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');$$('.panel').forEach(p=>p.classList.remove('active'));$('#panel-'+t.dataset.p).classList.add('active');}));
+$('#catCount').textContent=CATS.length;
+$('#idxCount').textContent=Object.keys(MARKET).length;
+$('#updatedChip').textContent=PM.updated;
+buildSelect();setCategory(CATS[0].id);
+
+/* Expose internals for app.js (Should-Cost Platform overlay).
+   Anything app.js needs to read or mutate goes on window.PM_CORE. */
+window.PM_CORE = {
+  state, CATS, MARKET, FAM, COL,
+  render, renderKPIs, renderCalc, renderMarket, renderDrivers,
+  renderSupplier, renderBench, renderBrief, renderRefresh,
+  model, niceRound, money, uprice, nf, donut, hstack,
+  buildSelect, setCategory,
+};
+</script>
+</body>
+</html>
